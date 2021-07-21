@@ -7,9 +7,14 @@ def isValid(String param) {
 def abortIfInvalid(String param) {
     if (!isValid(param)) {
         currentBuild.result = "ABORTED"
-        error("Parametros de entrada invalidos.")
+        error("The input parameters are invalid");
     }
 }
+
+def deployEnvChoiceNone = "NONE"
+def deployEnvChoiceDevelopment = "DEVELOPMENT"
+def deployEnvChoiceStaging = "STAGING"
+def deployEnvChoiceProduction = "PRODUCTION"
 
 node {
     println "Jenkins: "
@@ -18,12 +23,41 @@ node {
     def deployEnv = ""
     def gitBranch = ""
     def gitCommit = ""
-    stage('checkout') {
+    stage('Checkout') {
         def scmVars = checkout scm
         gitBranch = scmVars.GIT_BRANCH
         gitCommit = scmVars.GIT_COMMIT
 
         abortIfInvalid(gitBranch)
         abortIfInvalid(gitCommit)
+    }
+
+    stage("Trigger") {
+        println "==> GIT_BRANCH: ${gitBranch}"
+        println "==> GIT_COMMIT: ${gitCommit}"
+        def isMaster = gitBranch == "origin/master"
+        def isDevelop = gitBranch == "origin/develop"
+        def isFeature = gitBranch.contains("/feature/")
+        def isRelease = gitBranch.contains("/release/")
+        def isHotfix = gitBranch.contains("/hotfix/")
+
+        if (isMaster) {
+            deployEnv = deployEnvChoiceProduction
+        } else if (isDevelop) {
+            deployEnv = deployEnvChoiceDevelopment
+        } else if (isFeature) {
+            deployEnv = deployEnvChoiceNone
+        } else if (isRelease) {
+            deployEnv = deployEnvChoiceStaging
+        } else if (isHotfix) {
+            deployEnv = deployEnvChoiceNone
+        }
+
+        def buildParams = [
+            [$class: "StringParameterValue", name: "COMMIT_ID", value: gitCommit],
+            [$class: "StringParameterValue", name: "DEPLOY_ENV", value: deployEnv]
+        ]
+
+        //build job: jobToTrigger, parameters: buildParams
     }
 }
