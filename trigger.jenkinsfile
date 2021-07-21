@@ -1,0 +1,29 @@
+#!/usr/bin/env groovy
+
+def isValid(String param) {
+    return param != null && param.trim() != ""
+}
+
+def abortIfInvalid(String param) {
+    if (!isValid(param)) {
+        currentBuild.result = "ABORTED"
+        error("Parametros de entrada invalidos.")
+    }
+}
+
+node {
+    println "Jenkins: "
+    sh "printenv"
+
+    def deployEnv = ""
+    def gitBranch = ""
+    def gitCommit = ""
+    stage('checkout') {
+        def scmVars = checkout scm
+        gitBranch = scmVars.GIT_BRANCH
+        gitCommit = scmVars.GIT_COMMIT
+
+        abortIfInvalid(gitBranch)
+        abortIfInvalid(gitCommit)
+    }
+}
