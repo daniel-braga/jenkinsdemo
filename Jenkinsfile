@@ -74,7 +74,7 @@ node {
             stage('checkstyle') {
                 try {
                     sh 'vendor/bin/phpcs -v --report=checkstyle --report-file=../build/logs/checkstyle.xml --standard=phpcs.xml --extensions=php --ignore=vendor/ . || exit 0'
-                    recordIssues enabledForFailure: true, tool: checkStyle(pattern: '../**/build/logs/checkstyle.xml')
+                    recordIssues enabledForFailure: true, tool: checkStyle(pattern: '**/build/logs/checkstyle.xml')
                 } catch (err) {
                     slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Checkstyle report generation returned an error for the project (${BUILD_URL}).", tokenCredentialId: "slack-token")
                     throw err
