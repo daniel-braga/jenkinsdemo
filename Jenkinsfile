@@ -47,14 +47,9 @@ node {
         docker.image("danielbraga/php-devcontainer:latest").inside() {
             sh "echo '==> Starting pipeline in ${env.WORKSPACE} ...'"
 
-            def isProduction = deployEnv == deployEnvChoiceProduction
             stage("dependencies") {
                 try {
-                    if (isProduction) {
-                        sh "composer install --no-dev --no-progress"
-                    } else {
-                        sh "composer install --no-progress"
-                    }
+                    sh "composer install --no-progress"
                     sh "composer dump-autoload"
                 } catch (err) {
                     slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error in dependencies installation for the project (${BUILD_URL}).", tokenCredentialId: "slack-token")
