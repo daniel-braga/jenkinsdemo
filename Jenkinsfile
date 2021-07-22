@@ -47,9 +47,10 @@ node {
         docker.image("danielbraga/php-devcontainer:latest").inside() {
             sh "echo '==> Starting pipeline in ${env.WORKSPACE} ...'"
 
+            def isProduction = deployEnv == deployEnvChoiceProduction
             stage("dependencies") {
                 try {
-                    if (deployEnv == deployEnvChoiceProduction) {
+                    if (isProduction) {
                         sh "composer install --no-dev --no-progress"
                     } else {
                         sh "composer install --no-progress"
