@@ -11,6 +11,7 @@ def abortIfInvalid(String param) {
     }
 }
 
+def jobToTrigger = "jenkinsdemo-build"
 def deployEnvChoiceNone = "NONE"
 def deployEnvChoiceDevelopment = "DEVELOPMENT"
 def deployEnvChoiceStaging = "STAGING"
@@ -23,7 +24,7 @@ node {
     def deployEnv = ""
     def gitBranch = ""
     def gitCommit = ""
-    stage('Checkout') {
+    stage('checkout') {
         def scmVars = checkout scm
         gitBranch = scmVars.GIT_BRANCH
         gitCommit = scmVars.GIT_COMMIT
@@ -32,7 +33,7 @@ node {
         abortIfInvalid(gitCommit)
     }
 
-    stage("Trigger") {
+    stage("trigger") {
         println "==> GIT_BRANCH: ${gitBranch}"
         println "==> GIT_COMMIT: ${gitCommit}"
         def isMaster = gitBranch == "origin/master"
@@ -58,6 +59,6 @@ node {
             [$class: "StringParameterValue", name: "DEPLOY_ENV", value: deployEnv]
         ]
 
-        //build job: jobToTrigger, parameters: buildParams
+        build job: jobToTrigger, parameters: buildParams
     }
 }
