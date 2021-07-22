@@ -31,6 +31,7 @@ node {
 
     def projectVendor = ""
     def projectName = ""
+    def registryCredential = ""
     def isPublish = false
     def gitCommit = params.COMMIT_ID
     def deployEnv = params.DEPLOY_ENV
@@ -50,10 +51,12 @@ node {
 
         isPublish = deployEnv != deployEnvChoiceNone
         if (isPublish) {
+            abortIfInvalid(deployEnvPropertyFileId)
             configFileProvider([configFile(fileId: deployEnvPropertyFileId, variable: "configFile")]) {
                 deployProperties = readProperties file: "$configFile"
                   projectVendor = deployProperties.PROJECT_VENDOR
                   projectName = deployProperties.PROJECT_NAME
+                  registryCredential = deployProperties.REGISTRY_CREDENTIAL
 
                 dockerTag = gitCommit + "_" + deployEnv
                 deployProperties["DOCKER_IMAGE_TAG"] = dockerTag
@@ -61,6 +64,7 @@ node {
 
             abortIfInvalid(projectVendor)
             abortIfInvalid(projectName)
+            abortIfInvalid(registryCredential)
         }
     }
 
@@ -132,6 +136,17 @@ node {
                 dockerImage = docker.build("${projectVendor}/${projectName}:" + dockerTag, "build/tmp")
             } catch (err) {
                 slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Erro ao realizar build da imagem docker do frontend (${BUILD_URL}).", tokenCredentialId: "slack-token")
+                throw err
+            }
+        }
+
+        stage("publish docker") {
+            try {
+                docker.withRegistry("", registryCredential) {
+                    dockerImage.push dockerTag
+                }
+            } catch (err) {
+                slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error publishing Docker image (${BUILD_URL}).", tokenCredentialId: "slack-token")
                 throw err
             }
         }
