@@ -36,8 +36,8 @@ node {
     stage("trigger") {
         println "==> GIT_BRANCH: ${gitBranch}"
         println "==> GIT_COMMIT: ${gitCommit}"
-        def isMaster = gitBranch == "origin/master"
-        def isDevelop = gitBranch == "origin/develop"
+        def isMaster = gitBranch == "master"
+        def isDevelop = gitBranch == "develop"
         def isFeature = gitBranch.contains("/feature/")
         def isRelease = gitBranch.contains("/release/")
         def isHotfix = gitBranch.contains("/hotfix/")
