@@ -43,7 +43,7 @@ node {
         ])
     }
 
-    dir("/blog") {
+    dir("blog") {
         docker.image("danielbraga/php-devcontainer:latest").inside() {
             sh "echo '==> Starting pipeline in ${env.WORKSPACE} ...'"
 
