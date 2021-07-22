@@ -15,6 +15,10 @@ def deployEnvChoiceNone = "NONE"
 def deployEnvChoiceDevelopment = "DEVELOPMENT"
 def deployEnvChoiceStaging = "STAGING"
 def deployEnvChoiceProduction = "PRODUCTION"
+def deployEnvPropertyFileIdDevelopment = "jenkinsdemo-build-config-development"
+def deployEnvPropertyFileIdStaging = "jenkinsdemo-build-config-staging"
+def deployEnvPropertyFileIdProduction = "jenkinsdemo-build-config-production"
+
 properties([parameters([
     string(name: "COMMIT_ID", description: "Commit hash or tag", defaultValue: ""),
     choice(name: "DEPLOY_ENV", description: "Select a deployment environment", choices: [deployEnvChoiceNone, deployEnvChoiceDevelopment, deployEnvChoiceStaging, deployEnvChoiceProduction])
@@ -25,13 +29,38 @@ node {
     println "Jenkins: "
     sh "printenv"
 
+    def projectVendor = ""
+    def projectName = ""
     def isPublish = false
     def gitCommit = params.COMMIT_ID
     def deployEnv = params.DEPLOY_ENV
+    def deployProperties = [:] as Map<String, String>
 
     stage("pre-checkout") {
         abortIfInvalid(gitCommit)
         abortIfInvalid(deployEnv)
+
+        if (deployEnv == deployEnvChoiceDevelopment) {
+            deployEnvPropertyFileId = deployEnvPropertyFileIdDevelopment
+        } else if (deployEnv == deployEnvChoiceStaging) {
+            deployEnvPropertyFileId = deployEnvPropertyFileIdStaging
+        } else if (deployEnv == deployEnvChoiceProduction) {
+            deployEnvPropertyFileId = deployEnvPropertyFileIdProduction
+        }
+
+        if (isPublish) {
+            configFileProvider([configFile(fileId: deployEnvPropertyFileId, variable: "configFile")]) {
+                deployProperties = readProperties file: "$configFile"
+                  projectVendor = deployProperties.PROJECT_VENDOR
+                  projectName = deployProperties.PROJECT_NAME
+
+                dockerTag = gitCommit + "_" + deployEnv
+                deployProperties["DOCKER_IMAGE_TAG"] = dockerTag
+            }
+
+            abortIfInvalid(projectVendor)
+            abortIfInvalid(projectName)
+        }
     }
 
     stage("checkout") {
@@ -87,6 +116,23 @@ node {
                     throw err
                 }
             }  
+        }
+    }
+
+    if (isPublish) {
+        def dockerImage
+        stage("build-docker") {
+            try {
+                sh "rm -rf blog/build"
+                sh "rm -rf build/tmp"
+                sh "mkadir -p build/tmp"
+                sh "cp -R docker/* build/tmp"
+                sh "cp -R blog build/tmp"
+                dockerImage = docker.build("${projectVendor}/${projectName}:" + dockerTag, "build/temp")
+            } catch (err) {
+                slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Erro ao realizar build da imagem docker do frontend (${BUILD_URL}).", tokenCredentialId: "slack-token")
+                throw err
+            }
         }
     }
 }
