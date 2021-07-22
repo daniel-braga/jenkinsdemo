@@ -52,7 +52,7 @@ node {
                     sh "composer install --no-progress"
                     sh "composer dump-autoload"
                 } catch (err) {
-                    slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error in dependencies installation for the project (${BUILD_URL}).", tokenCredentialId: "slack-token")
+                    slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error in dependencies installation (${BUILD_URL}).", tokenCredentialId: "slack-token")
                     throw err
                 }
             }
@@ -61,7 +61,7 @@ node {
                 try {
                     sh 'find . -name "*.php" -not -path "./vendor/*" -print0 | xargs -0 -n1 php -l'
                 } catch (err) {
-                    slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Syntax check returned an error for the project (${BUILD_URL}).", tokenCredentialId: "slack-token")
+                    slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Syntax check returned an error (${BUILD_URL}).", tokenCredentialId: "slack-token")
                     throw err
                 }
             }
@@ -70,10 +70,20 @@ node {
                 try {
                     sh 'rm -rf build/logs'
                     sh 'mkdir -p build/logs'
-                    sh 'vendor/bin/phpcs -v --report=checkstyle --report-file=build/logs/checkstyle.xml --standard=phpcs.xml --extensions=php --ignore=vendor/ . || exit 0'
+                    sh 'vendor/bin/phpcs --report=checkstyle --report-file=build/logs/checkstyle.xml --standard=phpcs.xml --extensions=php --ignore=vendor/ . || exit 0'
                     recordIssues enabledForFailure: true, tool: checkStyle(pattern: '**/build/logs/checkstyle.xml')
                 } catch (err) {
-                    slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Checkstyle report generation returned an error for the project (${BUILD_URL}).", tokenCredentialId: "slack-token")
+                    slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Checkstyle report generation returned an error (${BUILD_URL}).", tokenCredentialId: "slack-token")
+                    throw err
+                }
+            }  
+
+            stage('tests') {
+                try {
+                    sh 'vendor/bin/phpunit -v --coverage-cobertura build/logs/cobertura.xml'
+                    cobertura coberturaReportFile: 'build/logs/cobertura.xml'
+                } catch (err) {
+                    slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] PHPUnit tests returned an error (${BUILD_URL}).", tokenCredentialId: "slack-token")
                     throw err
                 }
             }  
