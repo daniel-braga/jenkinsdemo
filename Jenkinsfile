@@ -161,7 +161,7 @@ node {
                     }
                 } catch (err) {
                     println(err)
-                    slackSend(color: "warning", message: "[ ${JOB_BASE_NAME} ] Changes in ${deployEnv}V have not been applied.", tokenCredentialId: "slack-token")
+                    slackSend(color: "warning", message: "[ ${JOB_BASE_NAME} ] Changes in ${deployEnv} have not been applied.", tokenCredentialId: "slack-token")
                     proceedDeploy = false
                 }
             }
