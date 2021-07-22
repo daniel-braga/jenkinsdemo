@@ -61,6 +61,20 @@ node {
                     throw err
                 }
             }
+
+            stage('lint') {
+                try {
+                    sh 'find . -name "*.php" -not -path "./vendor/*" -print0 | xargs -0 -n1 php -l'
+                } catch (err) {
+                    slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Syntax check returned an error for the project (${BUILD_URL}).", tokenCredentialId: "slack-token")
+                    throw err
+                }
+            }
+
+            stage('checkstyle') {
+                sh 'vendor/bin/phpcs -v --report=checkstyle --report-file=../build/logs/checkstyle.xml --standard=phpcs.xml --extensions=php --ignore=vendor/ . || exit 0'
+                recordIssues enabledForFailure: true, tool: checkStyle(pattern: '../**/build/logs/checkstyle.xml')
+            }  
         }
     }
 }
