@@ -48,6 +48,7 @@ node {
             deployEnvPropertyFileId = deployEnvPropertyFileIdProduction
         }
 
+        isPublish = deployEnv != deployEnvChoiceNone
         if (isPublish) {
             configFileProvider([configFile(fileId: deployEnvPropertyFileId, variable: "configFile")]) {
                 deployProperties = readProperties file: "$configFile"
