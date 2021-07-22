@@ -1,5 +1,4 @@
 {
     "image": "danielbraga/php-devcontainer",
-    "appPort": [8082],
-    "postCreateCommand": "apk add git"
+    "appPort": [8082]
 }
