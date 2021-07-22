@@ -126,7 +126,7 @@ node {
             try {
                 sh "rm -rf blog/build"
                 sh "rm -rf build/tmp"
-                sh "mkadir -p build/tmp"
+                sh "mkdir -p build/tmp"
                 sh "cp -R docker/* build/tmp"
                 sh "cp -R blog build/tmp"
                 dockerImage = docker.build("${projectVendor}/${projectName}:" + dockerTag, "build/temp")
