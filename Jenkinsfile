@@ -126,7 +126,7 @@ node {
 
     if (isPublish) {
         def dockerImage
-        stage("build-docker") {
+        stage("build docker") {
             try {
                 sh "rm -rf blog/build"
                 sh "rm -rf build/tmp"
@@ -148,6 +148,28 @@ node {
             } catch (err) {
                 slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error publishing Docker image (${BUILD_URL}).", tokenCredentialId: "slack-token")
                 throw err
+            }
+        }
+
+        def proceedDeploy = true
+        if (deployEnv != deployEnvChoiceDevelopment) {
+            stage("should i deploy now?") {
+                try {
+                    slackSend(color: "warning", message: "[ ${JOB_BASE_NAME} ] To apply changes in ${deployEnv} access the following address in the next 10 minutes: ${JOB_URL}", tokenCredentialId: "slack-token")
+                    timeout(time: 10, unit: "MINUTES") {
+                        input(id: "Deploy Gate", message: "Deploy in ${deployEnv}?", ok: "Deploy")
+                    }
+                } catch (err) {
+                    println(err)
+                    slackSend(color: "warning", message: "[ ${JOB_BASE_NAME} ] Changes in ${deployEnv}V have not been applied.", tokenCredentialId: "slack-token")
+                    proceedDeploy = false
+                }
+            }
+        }
+
+        if (proceedDeploy) {
+            stage("deploy") {
+                println "TODO"
             }
         }
     }
