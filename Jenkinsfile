@@ -11,10 +11,21 @@ def abortIfInvalid(String param) {
     }
 }
 
+def deployEnvChoiceNone = "NONE"
+def deployEnvChoiceDevelopment = "DEVELOPMENT"
+def deployEnvChoiceStaging = "STAGING"
+def deployEnvChoiceProduction = "PRODUCTION"
+properties([parameters([
+    string(name: "COMMIT_ID", description: "Commit hash or tag", defaultValue: ""),
+    choice(name: "DEPLOY_ENV", description: "Select a deployment environment", choices: [deployEnvChoiceNone, deployEnvChoiceDevelopment, deployEnvChoiceStaging, deployEnvChoiceProduction])
+])])
+
+
 node {
     println "Jenkins: "
     sh "printenv"
 
+    def isPublish = false
     def gitCommit = params.COMMIT_ID
     def deployEnv = params.DEPLOY_ENV
 
@@ -30,5 +41,25 @@ node {
             extensions       : scm.extensions,
             userRemoteConfigs: scm.userRemoteConfigs
         ])
+    }
+
+    dir("/blog") {
+        docker.image("danielbraga/php-devcontainer:latest").inside() {
+            sh "echo '==> Starting pipeline in ${env.WORKSPACE} ...'"
+
+            stage("dependencies") {
+                try {
+                    if (deployEnv == deployEnvChoiceProduction) {
+                        sh "composer install --no-dev --no-progress"
+                    } else {
+                        sh "composer install --no-progress"
+                    }
+                    sh "composer dump-autoload"
+                } catch (err) {
+                    slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error in dependencies installation for the project (${BUILD_URL}).", tokenCredentialId: "slack-token")
+                    throw err
+                }
+            }
+        }
     }
 }
