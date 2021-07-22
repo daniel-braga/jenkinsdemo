@@ -59,6 +59,8 @@ node {
             [$class: "StringParameterValue", name: "DEPLOY_ENV", value: deployEnv]
         ]
 
+        println "==> DEPLOY_ENV: ${deployEnv}"
+
         build job: jobToTrigger, parameters: buildParams
     }
 }
