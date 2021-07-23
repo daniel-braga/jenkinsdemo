@@ -198,7 +198,7 @@ node {
                         println identity
 
                         remote.user = userName
-                        remote.identity = identity
+                        remote.identityFile = identity
                         
                         sshCommand remote: remote, command: "mkdir -p /data/docker/blog"
                         sshRemove remote: remote, path: "${dockerComposeFullPathInServer}.backup"
