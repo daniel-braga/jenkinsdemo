@@ -195,6 +195,8 @@ node {
                 try {
 
                     withCredentials([sshUserPrivateKey(credentialsId: deployCredential, keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
+                        println identity
+
                         remote.user = userName
                         remote.identity = identity
                         
