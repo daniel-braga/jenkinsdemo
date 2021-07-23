@@ -85,7 +85,7 @@ node {
             
             remote.name = "deploy-host"
             remote.host = hostToDeploy
-            remote.port = hostPortToDeploy
+            remote.port = hostPortToDeploy as int
         }
     }
 
