@@ -11,15 +11,6 @@ def abortIfInvalid(String param) {
     }
 }
 
-def sshFormat(String user, String host, String port, String... commands) {
-    def command = commands.join("; ")
-    return "ssh -o StrictHostKeyChecking=no ${user}@${host} -p ${port} '${command}'"
-}
-
-def runSshKeyGen(String host) {
-    sh("ssh-keygen -R ${host}")
-}
-
 def deployDockerComposeFileName = "blog.yml"
 def deployDirectory = "/data/docker/blog"
 def deployEnvChoiceNone = "NONE"
@@ -42,6 +33,7 @@ node {
     def projectVendor = ""
     def projectName = ""
     def registryCredential = ""
+    def deployCredential = ""
     def hostToDeploy = ""
     def hostPortToDeploy = ""
     def userToDeploy = ""
@@ -49,6 +41,9 @@ node {
     def gitCommit = params.COMMIT_ID
     def deployEnv = params.DEPLOY_ENV
     def deployProperties = [:] as Map<String, String>
+
+    def remote = [:]
+    remote.allowAnyHosts = true
 
     stage("pre-checkout") {
         abortIfInvalid(gitCommit)
@@ -70,6 +65,7 @@ node {
                   projectVendor = deployProperties.PROJECT_VENDOR
                   projectName = deployProperties.PROJECT_NAME
                   registryCredential = deployProperties.REGISTRY_CREDENTIAL
+                  deployCredential = deployProperties.DEPLOY_CREDENTIAL
                   hostToDeploy = deployProperties.HOST
                   hostPortToDeploy = deployProperties.PORT
                   userToDeploy = deployProperties.USER
@@ -81,9 +77,15 @@ node {
             abortIfInvalid(projectVendor)
             abortIfInvalid(projectName)
             abortIfInvalid(registryCredential)
+            abortIfInvalid(deployCredential)
             abortIfInvalid(hostToDeploy)
             abortIfInvalid(hostPortToDeploy)
             abortIfInvalid(userToDeploy)
+
+            
+            remote.name = "deploy-host"
+            remote.host = hostToDeploy
+            remote.port = hostPortToDeploy
         }
     }
 
@@ -191,16 +193,17 @@ node {
                 def dockerComposeFullPathInServer = "${deployDirectory}/${deployDockerComposeFileName}" as String
 
                 try {
-                    runSshKeyGen(hostToDeploy)
-                    runSsh(
-                        userToDeploy,
-                        hostToDeploy,
-                        hostPortToDeploy,
-                        "sudo mkdir -p /data/docker/blog" as String,
-                        "sudo rm -f ${dockerComposeFullPathInServer}.backup" as String,
-                        "sudo cp ${dockerComposeFullPathInServer} ${dockerComposeFullPathInServer}.backup" as String,
-                        "sudo chmod -R 777 /data/docker/blog"
-                    )
+
+                    withCredentials([sshUserPrivateKey(credentialsId: 'deployCredential', keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
+                        remote.user = userName
+                        remote.identityFile = identity
+                        
+                        sshCommand remote: remote, command: "mkdir -p /data/docker/blog"
+                        sshRemove remote: remote, path: "${dockerComposeFullPathInServer}.backup"
+                        sshCommand remote: remote, command: "cp ${dockerComposeFullPathInServer} ${dockerComposeFullPathInServer}.backup"
+                        sshCommand remote: remote, command: "chmod -R 777 /data/docker/blog"
+                        
+                    }
                 } catch (err) {
                     slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error connecting to host '${hostToDeploy}' (${BUILD_URL}).", tokenCredentialId: "slack-token")
                     throw err
