@@ -11,6 +11,17 @@ def abortIfInvalid(String param) {
     }
 }
 
+def sshFormat(String user, String host, String port, String... commands) {
+    def command = commands.join("; ")
+    return "ssh -o StrictHostKeyChecking=no ${user}@${host} -p ${port} '${command}'"
+}
+
+def runSshKeyGen(String host) {
+    sh("ssh-keygen -R ${host}")
+}
+
+def deployDockerComposeFileName = "blog.yml"
+def deployDirectory = "/data/docker/blog"
 def deployEnvChoiceNone = "NONE"
 def deployEnvChoiceDevelopment = "DEVELOPMENT"
 def deployEnvChoiceStaging = "STAGING"
@@ -32,6 +43,8 @@ node {
     def projectVendor = ""
     def projectName = ""
     def registryCredential = ""
+    def hostToDeploy = ""
+    def userToDeploy = ""
     def isPublish = false
     def gitCommit = params.COMMIT_ID
     def deployEnv = params.DEPLOY_ENV
@@ -57,6 +70,8 @@ node {
                   projectVendor = deployProperties.PROJECT_VENDOR
                   projectName = deployProperties.PROJECT_NAME
                   registryCredential = deployProperties.REGISTRY_CREDENTIAL
+                  hostToDeploy = deployProperties.HOST
+                  userToDeploy = deployProperties.USER
 
                 dockerTag = gitCommit + "_" + deployEnv
                 deployProperties["DOCKER_IMAGE_TAG"] = dockerTag
@@ -65,6 +80,8 @@ node {
             abortIfInvalid(projectVendor)
             abortIfInvalid(projectName)
             abortIfInvalid(registryCredential)
+            abortIfInvalid(hostToDeploy)
+            abortIfInvalid(userToDeploy)
         }
     }
 
@@ -169,7 +186,22 @@ node {
 
         if (proceedDeploy) {
             stage("deploy") {
-                println "TODO"
+                def dockerComposeFullPathInServer = "${deployDirectory}/${deployDockerComposeFileName}" as String
+
+                try {
+                    runSshKeyGen(hostToDeploy)
+                    runSsh(
+                        userToDeploy,
+                        hostToDeploy,
+                        "sudo mkdir -p /data/docker/blog" as String,
+                        "sudo rm -f ${dockerComposeFullPathInServer}.backup" as String,
+                        "sudo cp ${dockerComposeFullPathInServer} ${dockerComposeFullPathInServer}.backup" as String,
+                        "sudo chmod -R 777 /data/docker/blog"
+                    )
+                } catch (err) {
+                    slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error connecting to host '${hostToDeploy}' (${BUILD_URL}).", tokenCredentialId: "slack-token")
+                    throw err
+                }
             }
         }
     }
