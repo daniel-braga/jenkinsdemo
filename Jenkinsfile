@@ -35,7 +35,6 @@ properties([parameters([
     choice(name: "DEPLOY_ENV", description: "Select a deployment environment", choices: [deployEnvChoiceNone, deployEnvChoiceDevelopment, deployEnvChoiceStaging, deployEnvChoiceProduction])
 ])])
 
-
 node {
     println "Jenkins: "
     sh "printenv"
@@ -44,6 +43,7 @@ node {
     def projectName = ""
     def registryCredential = ""
     def hostToDeploy = ""
+    def hostPortToDeploy = ""
     def userToDeploy = ""
     def isPublish = false
     def gitCommit = params.COMMIT_ID
@@ -71,6 +71,7 @@ node {
                   projectName = deployProperties.PROJECT_NAME
                   registryCredential = deployProperties.REGISTRY_CREDENTIAL
                   hostToDeploy = deployProperties.HOST
+                  hostPortToDeploy = deployProperties.PORT
                   userToDeploy = deployProperties.USER
 
                 dockerTag = gitCommit + "_" + deployEnv
@@ -81,6 +82,7 @@ node {
             abortIfInvalid(projectName)
             abortIfInvalid(registryCredential)
             abortIfInvalid(hostToDeploy)
+            abortIfInvalid(hostPortToDeploy)
             abortIfInvalid(userToDeploy)
         }
     }
@@ -193,6 +195,7 @@ node {
                     runSsh(
                         userToDeploy,
                         hostToDeploy,
+                        hostPortToDeploy,
                         "sudo mkdir -p /data/docker/blog" as String,
                         "sudo rm -f ${dockerComposeFullPathInServer}.backup" as String,
                         "sudo cp ${dockerComposeFullPathInServer} ${dockerComposeFullPathInServer}.backup" as String,
