@@ -196,7 +196,7 @@ node {
 
                     withCredentials([sshUserPrivateKey(credentialsId: deployCredential, keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
                         remote.user = userName
-                        remote.identityFile = identity
+                        remote.identity = identity
                         
                         sshCommand remote: remote, command: "mkdir -p /data/docker/blog"
                         sshRemove remote: remote, path: "${dockerComposeFullPathInServer}.backup"
