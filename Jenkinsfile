@@ -112,7 +112,6 @@ node {
             stage("dependencies") {
                 try {
                     sh "composer install --no-progress"
-                    sh "composer dump-autoload"
                 } catch (err) {
                     slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error in dependencies installation (${BUILD_URL}).", tokenCredentialId: "slack-token")
                     throw err
@@ -130,10 +129,10 @@ node {
 
             stage('checkstyle') {
                 try {
-                    sh 'rm -rf build/logs'
-                    sh 'mkdir -p build/logs'
-                    sh 'vendor/bin/phpcs --report=checkstyle --report-file=build/logs/checkstyle.xml --standard=phpcs.xml --extensions=php --ignore=vendor/ . || exit 0'
-                    recordIssues enabledForFailure: true, tool: checkStyle(pattern: '**/build/logs/checkstyle.xml')
+                    sh 'rm -rf build-logs'
+                    sh 'mkdir -p build-logs'
+                    sh 'vendor/bin/phpcs --report=checkstyle --report-file=build-logs/checkstyle.xml --standard=phpcs.xml --extensions=php --ignore=vendor/ . || exit 0'
+                    recordIssues enabledForFailure: true, tool: checkStyle(pattern: '**/build-logs/checkstyle.xml')
                 } catch (err) {
                     slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Checkstyle report generation returned an error (${BUILD_URL}).", tokenCredentialId: "slack-token")
                     throw err
@@ -142,9 +141,9 @@ node {
 
             stage('tests') {
                 try {
-                    sh 'XDEBUG_MODE=coverage vendor/bin/phpunit -v --coverage-cobertura build/logs/cobertura.xml --log-junit build/logs/junit.xml'
-                    cobertura coberturaReportFile: '**/build/logs/cobertura.xml'
-                    junit allowEmptyResults: true, skipPublishingChecks: true, testResults: '**/build/logs/junit.xml'
+                    sh 'XDEBUG_MODE=coverage vendor/bin/phpunit -v --coverage-cobertura build-logs/cobertura.xml --log-junit build-logs/junit.xml'
+                    cobertura coberturaReportFile: '**/build-logs/cobertura.xml'
+                    junit allowEmptyResults: true, skipPublishingChecks: true, testResults: '**/build-logs/junit.xml'
                 } catch (err) {
                     slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] PHPUnit tests returned an error (${BUILD_URL}).", tokenCredentialId: "slack-token")
                     throw err
@@ -157,7 +156,11 @@ node {
         def dockerImage
         stage("build docker") {
             try {
-                sh "rm -rf blog/build"
+                if (deployEnv == deployEnvChoiceProduction) {
+                    sh "cd blog && composer install --no-dev --no-progress"
+                }
+
+                sh "rm -rf blog/build-logs"
                 sh "rm -rf build/tmp"
                 sh "mkdir -p build/tmp"
                 sh "cp -R docker/* build/tmp"
