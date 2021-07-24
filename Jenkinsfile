@@ -210,7 +210,6 @@ node {
                     withCredentials([sshUserPrivateKey(credentialsId: deployCredential, keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
                         remote.user = userName
                         remote.identifyFile = identity
-                        remote.pty = true
                         
                         sshCommand remote: remote, sudo: true, command: "mkdir -p /data/docker/blog"
                         sshCommand remote: remote, sudo: true, command: "chmod -R 777 /data/docker/blog"
