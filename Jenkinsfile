@@ -211,8 +211,8 @@ node {
                         remote.user = userName
                         remote.identifyFile = identity
                         
-                        sshCommand remote: remote, sudo: true, command: "mkdir -p /data/docker/blog"
-                        sshCommand remote: remote, sudo: true, command: "chmod -R 777 /data/docker/blog"
+                        sshCommand remote: remote, command: "mkdir -p /data/docker/blog"
+                        sshCommand remote: remote, command: "chmod -R 777 /data/docker/blog"
                         sshRemove remote: remote, failOnError: false, path: "${dockerComposeFullPathInServer}.backup"
                         sshCommand remote: remote, failOnError: false, command: "cp ${dockerComposeFullPathInServer} ${dockerComposeFullPathInServer}.backup"
                     }
