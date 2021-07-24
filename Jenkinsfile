@@ -238,12 +238,12 @@ node {
 
                         try {
                             retry(count: 3) {
-                                sshCommand remote: remote, sudo: true, command: cmdDockerComposeUp
+                                sshCommand remote: remote, command: cmdDockerComposeUp
                             }
                         } catch (errTimeout) {
                             println(errTimeout)
-                            sshCommand remote: remote, sudo: true, command: cmdDockerComposeDown
-                            sshCommand remote: remote, sudo: true, command: cmdDockerComposeUp
+                            sshCommand remote: remote, command: cmdDockerComposeDown
+                            sshCommand remote: remote, command: cmdDockerComposeUp
                         }
                     } catch (err) {
                         slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error performing application deployment (${BUILD_URL}).", tokenCredentialId: 'slack-token')
