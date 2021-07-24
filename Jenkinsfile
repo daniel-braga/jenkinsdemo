@@ -56,9 +56,6 @@ node {
     def deployEnv = params.DEPLOY_ENV
     def deployProperties = [:] as Map<String, String>
 
-    def remote = [:]
-    remote.allowAnyHosts = true
-
     stage("pre-checkout") {
         abortIfInvalid(gitCommit)
         abortIfInvalid(deployEnv)
@@ -95,11 +92,7 @@ node {
             abortIfInvalid(hostToDeploy)
             abortIfInvalid(hostPortToDeploy)
             abortIfInvalid(userToDeploy)
-
-            
-            remote.name = "deploy-host"
-            remote.host = hostToDeploy
-            remote.port = hostPortToDeploy as int
+           
         }
     }
 
@@ -187,6 +180,7 @@ node {
         }
 
         def proceedDeploy = true
+        /*
         if (deployEnv != deployEnvChoiceDevelopment) {
             stage("should i deploy now?") {
                 try {
@@ -200,9 +194,16 @@ node {
                     proceedDeploy = false
                 }
             }
-        }
+        }*/
 
         if (proceedDeploy) {
+            
+            def remote = [:]
+            remote.name = "deploy-host"
+            remote.host = hostToDeploy
+            remote.port = hostPortToDeploy as int
+            remote.allowAnyHosts = true
+
             withCredentials([sshUserPrivateKey(credentialsId: deployCredential, keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
                 remote.user = userName
                 remote.identifyFile = identity
@@ -211,6 +212,7 @@ node {
                     def dockerComposeFullPathInServer = "${deployDirectory}/${deployDockerComposeFileName}" as String
 
                     try {
+                        println "Deploying to ${hostToDeploy}:${hostPortToDeploy} with user ${userName}"
                         sshCommand remote: remote, command: "mkdir -p /data/docker/blog"
                         sshCommand remote: remote, command: "chmod -R 777 /data/docker/blog"
                         sshRemove remote: remote, failOnError: false, path: "${dockerComposeFullPathInServer}.backup"
