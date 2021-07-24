@@ -223,10 +223,9 @@ node {
                 }
 
                 try {
-                    def dockerComposeTemplate = "blog/tmp/${deployDockerComposeFileName}" as String
+                    def dockerComposeTemplate = "build/tmp/${deployDockerComposeFileName}" as String
                     deployProperties.remove("HOST")
 
-                    sh('pwd')
                     runSed(dockerComposeTemplate, deployProperties)
 
                     sshPut remote: remote, from: dockerComposeTemplate, into: dockerComposeFullPathInServer
