@@ -234,7 +234,7 @@ node {
                     sshPut remote: remote, from: dockerComposeTemplate, into: dockerComposeFullPathInServer
                 }
             } catch (err) {
-                slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error copying files to server (${BUILD_URL}).", tokenCredentialId: 'slack-token')
+                slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error copying files to deployment server (${BUILD_URL}).", tokenCredentialId: 'slack-token')
                 throw err
             }
 
@@ -257,7 +257,7 @@ node {
                     }
                 }
             } catch (err) {
-                slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FALHA ] Falha ao realizar o deploy da aplicação (${BUILD_URL}).", tokenCredentialId: 'slack-token')
+                slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error performing application deployment (${BUILD_URL}).", tokenCredentialId: 'slack-token')
                 throw err
             }
 
