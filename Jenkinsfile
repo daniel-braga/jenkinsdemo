@@ -220,36 +220,35 @@ node {
                         slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error connecting to host '${hostToDeploy}' (${BUILD_URL}).", tokenCredentialId: "slack-token")
                         throw err
                     }
-                }
-
-                try {
-                    def dockerComposeTemplate = "build/tmp/${deployDockerComposeFileName}" as String
-                    deployProperties.remove("HOST")
-
-                    runSed(dockerComposeTemplate, deployProperties)
-
-                    sshPut remote: remote, from: dockerComposeTemplate, into: dockerComposeFullPathInServer
-                } catch (err) {
-                    slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error copying files to deployment server (${BUILD_URL}).", tokenCredentialId: 'slack-token')
-                    throw err
-                }
-
-                try {
-                    def cmdDockerComposeUp = "docker-compose -f ${dockerComposeFullPathInServer} up -d" as String
-                    def cmdDockerComposeDown = "docker-compose -f ${dockerComposeFullPathInServer} down" as String
 
                     try {
-                        retry(count: 3) {
+                        def dockerComposeTemplate = "build/tmp/${deployDockerComposeFileName}" as String
+                        deployProperties.remove("HOST")
+
+                        runSed(dockerComposeTemplate, deployProperties)
+                        sshPut remote: remote, from: dockerComposeTemplate, into: dockerComposeFullPathInServer
+                    } catch (err) {
+                        slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error copying files to deployment server (${BUILD_URL}).", tokenCredentialId: 'slack-token')
+                        throw err
+                    }
+
+                    try {
+                        def cmdDockerComposeUp = "docker-compose -f ${dockerComposeFullPathInServer} up -d" as String
+                        def cmdDockerComposeDown = "docker-compose -f ${dockerComposeFullPathInServer} down" as String
+
+                        try {
+                            retry(count: 3) {
+                                sshCommand remote: remote, sudo: true, command: cmdDockerComposeUp
+                            }
+                        } catch (errTimeout) {
+                            println(errTimeout)
+                            sshCommand remote: remote, sudo: true, command: cmdDockerComposeDown
                             sshCommand remote: remote, sudo: true, command: cmdDockerComposeUp
                         }
-                    } catch (errTimeout) {
-                        println(errTimeout)
-                        sshCommand remote: remote, sudo: true, command: cmdDockerComposeDown
-                        sshCommand remote: remote, sudo: true, command: cmdDockerComposeUp
+                    } catch (err) {
+                        slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error performing application deployment (${BUILD_URL}).", tokenCredentialId: 'slack-token')
+                        throw err
                     }
-                } catch (err) {
-                    slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error performing application deployment (${BUILD_URL}).", tokenCredentialId: 'slack-token')
-                    throw err
                 }
             }
 
