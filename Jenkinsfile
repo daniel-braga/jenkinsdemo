@@ -211,10 +211,9 @@ node {
                         remote.user = userName
                         remote.identifyFile = identity
                         
-                        sshCommand remote: remote, command: "mkdir -p /data/docker/blog"
+                        sshCommand remote: remote, command: "mkdir -p /data/docker/blog && chmod -R 777 /data/docker/blog"
                         sshRemove remote: remote, failOnError: false, path: "${dockerComposeFullPathInServer}.backup"
                         sshCommand remote: remote, failOnError: false, command: "cp ${dockerComposeFullPathInServer} ${dockerComposeFullPathInServer}.backup"
-                        sshCommand remote: remote, command: "chmod -R 777 /data/docker/blog"
                     }
                 } catch (err) {
                     slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error connecting to host '${hostToDeploy}' (${BUILD_URL}).", tokenCredentialId: "slack-token")
