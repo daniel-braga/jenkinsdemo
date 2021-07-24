@@ -11,6 +11,20 @@ def abortIfInvalid(String param) {
     }
 }
 
+def sedFormat(String templateFile, Map<String, String> params) {
+    def commands = []
+    params.each { entry ->
+        def expression = "-e 's|${entry.key}|${entry.value}|g'"
+        commands << expression
+    }
+
+    return "sed -i ${commands.join(" ")} ${templateFile}"
+}
+
+def runSed(String templateFile, Map<String, String> params) {
+    sh(sedFormat(templateFile, params))
+}
+
 def deployDockerComposeFileName = "blog.yml"
 def deployDirectory = "/data/docker/blog"
 def deployEnvChoiceNone = "NONE"
@@ -193,23 +207,62 @@ node {
                 def dockerComposeFullPathInServer = "${deployDirectory}/${deployDockerComposeFileName}" as String
 
                 try {
-
                     withCredentials([sshUserPrivateKey(credentialsId: deployCredential, keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
-                        println identity
-
                         remote.user = userName
-                        remote.identityFile = identity
+                        remote.identifyFile = identity
                         
                         sshCommand remote: remote, command: "mkdir -p /data/docker/blog"
-                        sshRemove remote: remote, path: "${dockerComposeFullPathInServer}.backup"
-                        sshCommand remote: remote, command: "cp ${dockerComposeFullPathInServer} ${dockerComposeFullPathInServer}.backup"
+                        sshRemove remote: remote, failOnError: false, path: "${dockerComposeFullPathInServer}.backup"
+                        sshCommand remote: remote, failOnError: false, command: "cp ${dockerComposeFullPathInServer} ${dockerComposeFullPathInServer}.backup"
                         sshCommand remote: remote, command: "chmod -R 777 /data/docker/blog"
-                        
                     }
                 } catch (err) {
                     slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error connecting to host '${hostToDeploy}' (${BUILD_URL}).", tokenCredentialId: "slack-token")
                     throw err
                 }
+            }
+
+            try {
+                def dockerComposeTemplate = "blog/tmp/${deployDockerComposeFileName}" as String
+                deployProperties.remove("HOST")
+                runSed(dockerComposeTemplate, deployProperties)
+
+                withCredentials([sshUserPrivateKey(credentialsId: deployCredential, keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
+                    remote.user = userName
+                    remote.identifyFile = identity
+
+                    sshPut remote: remote, from: dockerComposeTemplate, into: dockerComposeFullPathInServer
+                }
+            } catch (err) {
+                slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error copying files to server (${BUILD_URL}).", tokenCredentialId: 'slack-token')
+                throw err
+            }
+
+            try {
+                def cmdDockerComposeUp = "docker-compose -f ${dockerComposeFullPathInServer} up -d" as String
+                def cmdDockerComposeDown = "docker-compose -f ${dockerComposeFullPathInServer} down" as String
+
+                withCredentials([sshUserPrivateKey(credentialsId: deployCredential, keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
+                    remote.user = userName
+                    remote.identifyFile = identity
+
+                    try {
+                        retry(count: 3) {
+                            sshCommand remote: remote, sudo: true, command: cmdDockerComposeUp
+                        }
+                    } catch (errTimeout) {
+                        println(errTimeout)
+                        sshCommand remote: remote, sudo: true, command: cmdDockerComposeDown
+                        sshCommand remote: remote, sudo: true, command: cmdDockerComposeUp
+                    }
+                }
+            } catch (err) {
+                slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FALHA ] Falha ao realizar o deploy da aplicação (${BUILD_URL}).", tokenCredentialId: 'slack-token')
+                throw err
+            }
+
+            stage("notify") {
+                slackSend(color: "good", message: "[ ${JOB_BASE_NAME} ] [ SUCCESS ] The application was successfuly deployed", tokenCredentialId: "slack-token")
             }
         }
     }
