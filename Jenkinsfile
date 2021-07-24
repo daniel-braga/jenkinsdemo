@@ -199,12 +199,14 @@ node {
         if (proceedDeploy) {
             
             def remote = [:]
-            remote.name = "deploy-host"
-            remote.host = hostToDeploy
-            remote.port = hostPortToDeploy as int
+            remote.name = "deployer"
+            remote.host = "deployer"
+            remote.logLevel = "FINEST"
+            //remote.port = hostPortToDeploy as int
             remote.allowAnyHosts = true
 
-            withCredentials([sshUserPrivateKey(credentialsId: deployCredential, keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
+            withCredentials([sshUserPrivateKey(credentialsId: 'deploy-key', keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
+            //withCredentials([sshUserPrivateKey(credentialsId: deployCredential, keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
                 remote.user = userName
                 remote.identifyFile = identity
 
@@ -213,6 +215,7 @@ node {
 
                     try {
                         println "Deploying to ${hostToDeploy}:${hostPortToDeploy} with user ${userName}"
+              
                         sshCommand remote: remote, command: "mkdir -p /data/docker/blog"
                         sshCommand remote: remote, command: "chmod -R 777 /data/docker/blog"
                         sshRemove remote: remote, failOnError: false, path: "${dockerComposeFullPathInServer}.backup"
