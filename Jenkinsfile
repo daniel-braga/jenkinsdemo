@@ -212,11 +212,11 @@ node {
 
                 stage("deploy") {
                     def dockerComposeFullPathInServer = "${deployDirectory}/${deployDockerComposeFileName}" as String
-
+                    sshCommand remote: remote, command: "mkdir -p /data/docker/blog"
+                        
                     try {
                         println "Deploying to ${hostToDeploy}:${hostPortToDeploy} with user ${userName}"
               
-                        sshCommand remote: remote, command: "mkdir -p /data/docker/blog"
                         sshCommand remote: remote, command: "chmod -R 777 /data/docker/blog"
                         sshRemove remote: remote, failOnError: false, path: "${dockerComposeFullPathInServer}.backup"
                         sshCommand remote: remote, failOnError: false, command: "cp ${dockerComposeFullPathInServer} ${dockerComposeFullPathInServer}.backup"
