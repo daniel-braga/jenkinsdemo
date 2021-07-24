@@ -210,8 +210,10 @@ node {
                     withCredentials([sshUserPrivateKey(credentialsId: deployCredential, keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
                         remote.user = userName
                         remote.identifyFile = identity
+                        remote.pty = true
                         
-                        sshCommand remote: remote, command: "mkdir -p /data/docker/blog && chmod -R 777 /data/docker/blog"
+                        sshCommand remote: remote, sudo: true, command: "mkdir -p /data/docker/blog"
+                        sshCommand remote: remote, sudo: true, command: "chmod -R 777 /data/docker/blog"
                         sshRemove remote: remote, failOnError: false, path: "${dockerComposeFullPathInServer}.backup"
                         sshCommand remote: remote, failOnError: false, command: "cp ${dockerComposeFullPathInServer} ${dockerComposeFullPathInServer}.backup"
                     }
