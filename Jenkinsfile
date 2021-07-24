@@ -180,7 +180,6 @@ node {
         }
 
         def proceedDeploy = true
-        /*
         if (deployEnv != deployEnvChoiceDevelopment) {
             stage("should i deploy now?") {
                 try {
@@ -194,7 +193,7 @@ node {
                     proceedDeploy = false
                 }
             }
-        }*/
+        }
 
         if (proceedDeploy) {
 
