@@ -142,8 +142,9 @@ node {
 
             stage('tests') {
                 try {
-                    sh 'XDEBUG_MODE=coverage vendor/bin/phpunit -v --coverage-cobertura build/logs/cobertura.xml'
+                    sh 'XDEBUG_MODE=coverage vendor/bin/phpunit -v --coverage-cobertura build/logs/cobertura.xml --log-junit build/logs/junit.xml'
                     cobertura coberturaReportFile: '**/build/logs/cobertura.xml'
+                    junit allowEmptyResults: true, skipPublishingChecks: true, testResults: '**/build/logs/junit.xml'
                 } catch (err) {
                     slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] PHPUnit tests returned an error (${BUILD_URL}).", tokenCredentialId: "slack-token")
                     throw err
