@@ -148,7 +148,13 @@ node {
                     slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] PHPUnit tests returned an error (${BUILD_URL}).", tokenCredentialId: "slack-token")
                     throw err
                 }
-            }  
+            } 
+
+            if (deployEnv == deployEnvChoiceProduction) {
+                stage('remove dev packages') {
+                    sh "composer install --no-dev --no-progress"
+                }
+            }
         }
     }
 
@@ -156,10 +162,6 @@ node {
         def dockerImage
         stage("build docker") {
             try {
-                if (deployEnv == deployEnvChoiceProduction) {
-                    sh "cd blog && composer install --no-dev --no-progress"
-                }
-
                 sh "rm -rf blog/build-logs"
                 sh "rm -rf build/tmp"
                 sh "mkdir -p build/tmp"
