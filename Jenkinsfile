@@ -169,7 +169,7 @@ node {
                 sh "cp -R blog build/tmp"
                 dockerImage = docker.build("${projectVendor}/${projectName}:" + dockerTag, "build/tmp")
             } catch (err) {
-                slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Erro ao realizar build da imagem docker do frontend (${BUILD_URL}).", tokenCredentialId: "slack-token")
+                slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error building Docker image(${BUILD_URL}).", tokenCredentialId: "slack-token")
                 throw err
             }
         }
