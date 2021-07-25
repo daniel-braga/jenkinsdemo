@@ -4,7 +4,7 @@ use Laravel\Lumen\Testing\DatabaseMigrations;
 use Laravel\Lumen\Testing\DatabaseTransactions;
 
 /**
- * @covers App\Http\Controllers\HomeController::
+ * @covers App\Http\Controllers\HomeController
  */
 class ExampleTest extends TestCase
 {
