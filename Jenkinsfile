@@ -34,6 +34,9 @@ def deployEnvChoiceProduction = "PRODUCTION"
 def deployEnvPropertyFileIdDevelopment = "jenkinsdemo-build-config-development"
 def deployEnvPropertyFileIdStaging = "jenkinsdemo-build-config-staging"
 def deployEnvPropertyFileIdProduction = "jenkinsdemo-build-config-production"
+def appEnvPropertyFileIdDevelopment = "jenkinsdemo-app-config-development"
+def appEnvPropertyFileIdStaging = "jenkinsdemo-app-config-staging"
+def appEnvPropertyFileIdProduction = "jenkinsdemo-app-config-production"
 
 properties([parameters([
     string(name: "COMMIT_ID", description: "Commit hash or tag", defaultValue: ""),
@@ -54,6 +57,8 @@ node {
     def isPublish = false
     def gitCommit = params.COMMIT_ID
     def deployEnv = params.DEPLOY_ENV
+    def deployEnvPropertyFileId = ""
+    def appEnvPropertyFileId = ""
     def deployProperties = [:] as Map<String, String>
 
     stage("pre-checkout") {
@@ -62,10 +67,13 @@ node {
 
         if (deployEnv == deployEnvChoiceDevelopment) {
             deployEnvPropertyFileId = deployEnvPropertyFileIdDevelopment
+            appEnvPropertyFileId = appEnvPropertyFileIdDevelopment
         } else if (deployEnv == deployEnvChoiceStaging) {
             deployEnvPropertyFileId = deployEnvPropertyFileIdStaging
+            appEnvPropertyFileId = appEnvPropertyFileIdStaging
         } else if (deployEnv == deployEnvChoiceProduction) {
             deployEnvPropertyFileId = deployEnvPropertyFileIdProduction
+            appEnvPropertyFileId = appEnvPropertyFileIdProduction
         }
 
         isPublish = deployEnv != deployEnvChoiceNone
@@ -215,6 +223,7 @@ node {
 
                 stage("deploy") {
                     def dockerComposeFullPathInServer = "${deployDirectory}/${deployDockerComposeFileName}" as String
+                    def envFileFullPathInServer = "${deployDirectory}/.env" as String
                         
                     try {
                         sshCommand remote: remote, command: "mkdir -p /data/docker/blog"
@@ -228,10 +237,18 @@ node {
 
                     try {
                         def dockerComposeTemplate = "build/tmp/${deployDockerComposeFileName}" as String
+                        def appEnvTemplate = "build/tmp/.env" as String
+
                         deployProperties.remove("HOST")
+
+                        configFileProvider([configFile(fileId: appEnvPropertyFileId, variable: "appEnvFile")]) {
+                            appEnvProperties = readProperties file: "$appEnvFile"
+                            writeFile(file: appEnvTemplate, text: readFile(appEnvFile))
+                        }
 
                         runSed(dockerComposeTemplate, deployProperties)
                         sshPut remote: remote, from: dockerComposeTemplate, into: dockerComposeFullPathInServer
+                        sshPut remote: remote, from: appEnvTemplate, into: envFileFullPathInServer
                     } catch (err) {
                         slackSend(color: "error", message: "[ ${JOB_BASE_NAME} ] [ FAIL ] Error copying files to deployment server (${BUILD_URL}).", tokenCredentialId: 'slack-token')
                         throw err
