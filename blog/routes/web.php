@@ -14,3 +14,7 @@
 */
 
 $router->get('/', 'HomeController@home');
+
+$router->get('/name', fn() => env('APP_NAME'));
+
+$router->get('/env', fn() => env('APP_ENV'));
